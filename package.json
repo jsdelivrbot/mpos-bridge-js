@@ -4,13 +4,13 @@
   "description": "",
   "main": "dist/pagarme.js",
   "scripts": {
-    "start": "webpack --progress --colors --optimize-minimize --optimize-dedupe",
+    "start": "webpack --progress --colors",
     "docs": "jsdoc src -r --verbose --debug -d docs",
     "test": "run-s test:unit",
     "pretest": "npm start",
     "test:unit": "run-p test:unit:server test:unit:tests",
-    "test:unit:server": "env PORT=8080 babel-node ./test/echoServer",
-    "test:unit:tests": "wait-on tcp:127.0.0.1:8080 && jest --verbose",
+    "test:unit:server": "env PORT=2222 babel-node ./test/echoServer",
+    "test:unit:tests": "wait-on tcp:127.0.0.1:2222 && jest --verbose",
     "posttest:unit:tests": "killall -INT echoServer"
   },
   "keywords": [],
@@ -19,10 +19,11 @@
   "devDependencies": {
     "babel-cli": "6.18.0",
     "babel-core": "6.17.0",
-    "babel-jest": "18.0.0",
+    "babel-jest": "^19.0.0",
     "babel-loader": "6.2.5",
     "babel-preset-es2015": "6.16.0",
     "bluebird": "3.4.6",
+    "cuid": "^1.3.8",
     "eslint": "3.7.1",
     "eslint-config-airbnb-base": "8.0.0",
     "eslint-loader": "1.5.0",
@@ -35,9 +36,7 @@
     "qs": "6.3.0",
     "ramda": "0.22.1",
     "wait-on": "2.0.2",
-    "webpack": "1.13.2"
-  },
-  "dependencies": {
-    "cuid": "^1.3.8"
+    "webpack": "1.13.2",
+    "websocket": "^1.0.24"
   }
 }

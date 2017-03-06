@@ -20,7 +20,7 @@ const finishPayment = standardCommand('finish_payment')
 
 function initialize (protocol, args, options) {
   const command = merge({
-    command: name,
+    command: 'initialize',
     encryption_key: protocol.config.encryption_key,
   }, args)
 

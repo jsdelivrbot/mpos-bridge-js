@@ -1,4 +1,10 @@
 import client from './lib'
 
-export default { client }
+const mposBridge = {
+  client,
+}
+
+mposBridge.default = mposBridge
+
+export default mposBridge
 

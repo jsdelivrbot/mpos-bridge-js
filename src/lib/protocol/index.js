@@ -1,20 +1,13 @@
 import { merge } from 'ramda'
 import cuid from 'cuid'
 import Bluebird from 'bluebird'
-import { EventEmitter } from 'util'
+import { EventEmitter } from 'events'
+import { w3cwebsocket as WS } from 'websocket'
 
 function open (config) {
+  const socket = new WS(config.endpoint, 'mpos-bridge')
   const callbacks = {}
   const events = new EventEmitter()
-  const socket = new WebSocket(config.endpoint)
-
-  function registerEventHandler (event, handler) {
-    events.addListener(event, handler)
-  }
-
-  function removeEventHandler (event, handler) {
-    events.removeListener(event, handler)
-  }
 
   function registerCallback (commandId, callback) {
     callbacks[commandId] = callback
@@ -22,10 +15,6 @@ function open (config) {
 
   function deregisterCallback (commandId) {
     delete callbacks[commandId]
-  }
-
-  function fireProtocolError (error) {
-    events.emit('error', error)
   }
 
   function send (request, options) {
@@ -38,6 +27,8 @@ function open (config) {
       command_id: cuid(),
     }, request)
 
+    const payload = JSON.stringify(fullRequest)
+
     return new Bluebird((resolve, reject) => {
       if (finalOptions.waitForResponse) {
         registerCallback(fullRequest.command_id, (result) => {
@@ -49,7 +40,7 @@ function open (config) {
         })
       }
 
-      socket.send(fullRequest)
+      socket.send(payload)
 
       if (!finalOptions.waitForResponse) {
         resolve()
@@ -57,57 +48,38 @@ function open (config) {
     })
   }
 
-  function create (resolve, reject) {
-    let resolved = false
+  socket.addEventListener('error', (error) => {
+    events.emit('error', error)
+  })
 
-    const instance = {
-      config,
-      send,
-      registerEventHandler,
-      removeEventHandler,
+  socket.addEventListener('open', () => {
+    events.emit('ready')
+  })
+
+  socket.addEventListener('message', (data) => {
+    const message = JSON.parse(data.data)
+
+    if (message.command) {
+      const callback = callbacks[message.command_id]
+
+      if (callback) {
+        deregisterCallback(message.command_id)
+        callback(message)
+      }
+    } else if (message.event) {
+      events.emit(message.event, message)
     }
+  })
 
-    socket.addEventListener('error', (error) => {
-      resolved = true
+  socket.addEventListener('close', () => {
+    events.emit('close')
+  })
 
-      if (resolved) {
-        fireProtocolError(error)
-      } else {
-        reject(error)
-      }
-    })
-
-    socket.addEventListener('open', () => {
-      if (resolved) {
-        return
-      }
-
-      resolved = true
-
-      resolve(instance)
-    })
-
-    socket.addEventListener('message', (data) => {
-      const message = JSON.parse(data)
-
-      if (message.command) {
-        const callback = callbacks[message.command_id]
-
-        if (callback) {
-          deregisterCallback(message.command_id)
-          callback(message)
-        }
-      } else if (message.event) {
-        events.emit(message.event, message)
-      }
-    })
-
-    socket.addEventListener('close', () => {
-      events.emit('close')
-    })
+  return {
+    config,
+    send,
+    events,
   }
-
-  return new Bluebird(create)
 }
 
 export default { open }

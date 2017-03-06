@@ -32,12 +32,13 @@ function bindOptions (options) {
  * @returns {Promise} A Promise that resolves to the client instance
  */
 function connect (options) {
-  return protocol
-    .open(options)
-    .then(bindOptions)
+  const proto = protocol.open(options)
+
+  return merge(
+    proto,
+    bindOptions(proto),
+  )
 }
 
-const client = merge({ connect }, commands)
-
-export default client
+export default { connect }
 
